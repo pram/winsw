@@ -36,9 +36,11 @@ namespace winswTests.Util
         {
             using (StringWriter sw = new StringWriter())
             {
+                Arguments arguments = new Arguments();
+                arguments.Action = args[0];
                 TextWriter tmp = Console.Out;
                 Console.SetOut(sw);
-                WrapperService.Run(args, descriptor ?? DefaultServiceDescriptor);
+                WrapperService.Run(arguments, descriptor ?? DefaultServiceDescriptor);
                 Console.SetOut(tmp);
                 Console.Write(sw.ToString());
                 return sw.ToString();
@@ -54,6 +56,8 @@ namespace winswTests.Util
         [NotNull]
         public static CLITestResult CLIErrorTest(String[] args, ServiceDescriptor descriptor = null)
         {
+            Arguments arguments = new Arguments();
+            arguments.Action = args[0];
             StringWriter swOut, swErr;
             Exception testEx = null;
             TextWriter tmpOut = Console.Out;
@@ -65,7 +69,7 @@ namespace winswTests.Util
                 {              
                     Console.SetOut(swOut);
                     Console.SetError(swErr);
-                    WrapperService.Run(args, descriptor ?? DefaultServiceDescriptor);
+                    WrapperService.Run(arguments, descriptor ?? DefaultServiceDescriptor);
                 }
                 catch (Exception ex)
                 {

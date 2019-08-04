@@ -464,7 +464,9 @@ namespace winsw
             // Run app
             try
             {
-                Run(args);
+                Arguments arguments = new Arguments();
+                
+                Run(arguments);
                 Log.Debug("Completed. Exit code is 0");
                 return 0;
             }
@@ -496,9 +498,9 @@ namespace winsw
         /// <param name="descriptor">Service descriptor. If null, it will be initialized within the method. 
         ///                          In such case configs will be loaded from the XML Configuration File.</param>
         /// <exception cref="Exception">Any unhandled exception</exception>
-        public static void Run(string[] _args, ServiceDescriptor descriptor = null)
+        public static void Run(Arguments arguments, ServiceDescriptor descriptor = null)
         {
-            bool isCLIMode = _args.Length > 0;
+            bool isCLIMode = arguments.cliMode;
             
             
             // If descriptor is not specified, initialize the new one (and load configs from there)
@@ -517,8 +519,8 @@ namespace winsw
                 Win32Services svc = new WmiRoot().GetCollection<Win32Services>();
                 Win32Service s = svc.Select(d.Id);
 
-                var args = new List<string>(Array.AsReadOnly(_args));
-                if (args[0] == "/redirect")
+//                var args = new List<string>(Array.AsReadOnly(_args));
+                if (arguments.Action == "/redirect")
                 {
                     // Redirect output
                     // One might ask why we support this when the caller 
@@ -528,7 +530,7 @@ namespace winsw
                     // accordingly. This in turn limits what the caller can do,
                     // and among other things it makes it difficult for the caller
                     // to read stdout/stderr. Thus redirection becomes handy.
-                    var f = new FileStream(args[1], FileMode.Create);
+                    var f = new FileStream(arguments.Action, FileMode.Create);
                     var w = new StreamWriter(f) {AutoFlush = true};
                     Console.SetOut(w);
                     Console.SetError(w);
@@ -537,11 +539,11 @@ namespace winsw
                     Kernel32.SetStdHandle(-11, handle); // set stdout
                     Kernel32.SetStdHandle(-12, handle); // set stder
 
-                    args = args.GetRange(2, args.Count - 2);
+//                    args = args.GetRange(2, args.Count - 2);
                 }
 
-                args[0] = args[0].ToLower();
-                if (args[0] == "install")
+//                args[0] = args[0].ToLower();
+                if (arguments.Action == "install")
                 {
                     Log.Info("Installing the service with id '" + d.Id + "'");
 
@@ -555,21 +557,15 @@ namespace winsw
 
                     string username=null, password=null;
                     bool setallowlogonasaserviceright = false;
-                    if (args.Count > 1 && args[1] == "/p")
+                    if (!string.IsNullOrEmpty(arguments.username) && !string.IsNullOrEmpty(arguments.password) )
                     {
                         // we expected username/password on stdin
-                        Console.Write("Username: ");
-                        username = Console.ReadLine();
-                        Console.Write("Password: ");
-                        password = ReadPassword();
-                        Console.WriteLine();
-                        Console.Write("Set Account rights to allow log on as a service (y/n)?: ");
-                        var keypressed = Console.ReadKey();
-                        Console.WriteLine();
-                        if (keypressed.Key == ConsoleKey.Y)
-                        {
-                            setallowlogonasaserviceright = true;
-                        }
+//                        Console.Write("Username: ");
+                        username = arguments.username;
+//                        Console.Write("Password: ");
+                        password = arguments.password;
+                        setallowlogonasaserviceright = arguments.allowLoginAsService;
+                        
                     }
                     else
                     {
@@ -633,7 +629,7 @@ namespace winsw
                     }
                     return;
                 }
-                if (args[0] == "uninstall")
+                if (arguments.Action == "uninstall")
                 {
                     Log.Info("Uninstalling the service with id '" + d.Id + "'");
                     if (s == null)
@@ -670,21 +666,21 @@ namespace winsw
                     }
                     return;
                 }
-                if (args[0] == "start")
+                if (arguments.Action == "start")
                 {
                     Log.Info("Starting the service with id '" + d.Id + "'");
                     if (s == null) ThrowNoSuchService();
                     s.StartService();
                     return;
                 }
-                if (args[0] == "stop")
+                if (arguments.Action == "stop")
                 {
                     Log.Info("Stopping the service with id '" + d.Id + "'");
                     if (s == null) ThrowNoSuchService();
                     s.StopService();
                     return;
                 }
-                if (args[0] == "restart")
+                if (arguments.Action == "restart")
                 {
                     Log.Info("Restarting the service with id '" + d.Id + "'");
                     if (s == null) 
@@ -702,7 +698,7 @@ namespace winsw
                     s.StartService();
                     return;
                 }
-                if (args[0] == "restart!")
+                if (arguments.Action == "restart!")
                 {
                     Log.Info("Restarting the service with id '" + d.Id + "'");
 
@@ -718,7 +714,7 @@ namespace winsw
                     }
                     return;
                 }
-                if (args[0] == "status")
+                if (arguments.Action == "status")
                 {
                     Log.Debug("User requested the status of the process with id '" + d.Id + "'");
                     if (s == null)
@@ -729,38 +725,38 @@ namespace winsw
                         Console.WriteLine("Stopped");
                     return;
                 }
-                if (args[0] == "test")
+                if (arguments.Action == "test")
                 {
                     WrapperService wsvc = new WrapperService(d);
-                    wsvc.OnStart(args.ToArray());
+//                    wsvc.OnStart(args.ToArray());
                     Thread.Sleep(1000);
                     wsvc.OnStop();
                     return;
                 }
-                if (args[0] == "testwait")
+                if (arguments.Action == "testwait")
                 {
                     WrapperService wsvc = new WrapperService(d);
-                    wsvc.OnStart(args.ToArray());
+//                    wsvc.OnStart(args.ToArray());
                     Console.WriteLine("Press any key to stop the service...");
                     Console.Read();
                     wsvc.OnStop();
                     return;
                 }
-                if (args[0] == "help" || args[0] == "--help" || args[0] == "-h" 
-                    || args[0] == "-?" || args[0] == "/?")
+                if (arguments.Action == "help" || arguments.Action == "--help" || arguments.Action == "-h" 
+                    || arguments.Action == "-?" || arguments.Action == "/?")
                 {
                     printHelp();
                     return;
                 }
-                if (args[0] == "version")
+                if (arguments.Action == "version")
                 {
                     printVersion();
                     return;
                 }
                 
-                Console.WriteLine("Unknown command: " + args[0]);
+                Console.WriteLine("Unknown command: " + arguments.Action);
                 printAvailableCommandsInfo();
-                throw new Exception("Unknown command: " + args[0]);
+                throw new Exception("Unknown command: " + arguments.Action);
 
             }
             else
@@ -886,7 +882,7 @@ namespace winsw
 
         private static void printVersion()
         {
-            Console.WriteLine("WinSW " + Version);
+            Console.Write(Version);
         }
     }
 }

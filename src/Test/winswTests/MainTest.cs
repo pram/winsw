@@ -35,7 +35,7 @@ namespace winswTests
         [Test]
         public void FailOnUnsupportedCommand()
         {
-            const string commandName = "nonExistentCommand";
+            const string commandName = "nonexistentcommand";
             string expectedMessage = "Unknown command: " + commandName.ToLower();
             CLITestResult res = CLITestHelper.CLIErrorTest(new[] {commandName});
   
