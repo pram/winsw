@@ -501,7 +501,7 @@ namespace winsw
         public static void Run(Arguments arguments, ServiceDescriptor descriptor = null)
         {
             bool isCLIMode = arguments.cliMode;
-            
+          
             
             // If descriptor is not specified, initialize the new one (and load configs from there)
             var d = descriptor ?? new ServiceDescriptor();
